@@ -338,6 +338,6 @@ jobs:
               docker login ghcr.io -u '${{ github.actor }}' -p '${{ secrets.G_TOKEN }}'
               docker pull "${IMAGE}@${{ needs.build-and-push.outputs.image_digest }}"
               docker rm -f app || true
-              docker run -d --name app -p 80:80 \
+              docker run -d --name app -p 80:18075 \
               -v "$ENV_PATH":/app/.env:ro \
               "${IMAGE}@${{ needs.build-and-push.outputs.image_digest }}"
