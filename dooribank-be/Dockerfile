@@ -40,7 +40,7 @@ RUN addgroup -S appgroup && \
 
 USER appuser
 
-EXPOSE 8081
+EXPOSE 80
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
 
