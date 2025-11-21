@@ -335,9 +335,9 @@ jobs:
 
             
             # 2) 컨테이너 재배포 (Dotenv가 /app/.env 를 찾으므로 바인드 마운트)
-            docker login ghcr.io -u '${{ github.actor }}' -p '${{ secrets.G_TOKEN }}'
-            docker pull "${IMAGE}@${{ needs.build-and-push.outputs.image_digest }}"
-            docker rm -f app || true
-            docker run -d --name app -p 8080:8080 \
+            sudo docker login ghcr.io -u '${{ github.actor }}' -p '${{ secrets.G_TOKEN }}'
+            sudo docker pull "${IMAGE}@${{ needs.build-and-push.outputs.image_digest }}"
+            sudo docker rm -f app || true
+            sudo docker run -d --name app -p 8080:8080 \
               -v "$ENV_PATH":/app/.env:ro \
               "${IMAGE}@${{ needs.build-and-push.outputs.image_digest }}"
