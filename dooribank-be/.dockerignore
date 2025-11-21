@@ -1,0 +1,46 @@
+# Gradle
+.gradle/
+build/
+bin/
+*.iml
+*.ipr
+*.iws
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Logs
+*.log
+logs/
+
+# Test
+src/test/
+
+# Documentation
+README.md
+*.md
+HELP.md
+
+# Environment
+.env
+.env.local
+.env.*.local
+
