@@ -302,7 +302,7 @@ jobs:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: 113.198.66.75
+          host: ${{ secrets.SSH_HOST }}
           username: ubuntu
           port: 19201
           key: ${{ secrets.SSH_KEY }}
