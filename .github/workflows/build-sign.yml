@@ -229,7 +229,7 @@ jobs:
           image-ref: "${{ env.IMAGE }}@${{ steps.push.outputs.digest }}"
           scan-type: "image"
           format: "cyclonedx"
-          output: "${{ github.workspace }}/Woori-Doori-BE/sbom.json"
+          output: "${{ github.workspace }}/dooribank-be/sbom.json"
 
 
 
