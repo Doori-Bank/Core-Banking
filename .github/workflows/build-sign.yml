@@ -119,8 +119,8 @@ jobs:
         uses: docker/build-push-action@v6
         id: push
         with:
-          context: ./Woori-Doori-BE
-          file: ./Woori-Doori-BE/Dockerfile
+          context: ./dooribank-be
+          file: ./dooribank-be/Dockerfile
           push: true
           tags: |
             ${{ env.IMAGE }}:latest
@@ -251,7 +251,7 @@ jobs:
           DIGEST: ${{ steps.push.outputs.digest }}
         run: |
           cosign attest --yes \
-            --predicate "${{ github.workspace }}/Woori-Doori-BE/sbom.json" \
+            --predicate "${{ github.workspace }}/dooribank-be/sbom.json" \
             --type cyclonedx \
             "${{ env.IMAGE }}@${DIGEST}"
             
