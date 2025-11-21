@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./Woori-Doori-BE
+        working-directory: ./dooribank-be
     outputs:
       image_digest: ${{ steps.push.outputs.digest }}
 
@@ -119,8 +119,8 @@ jobs:
         uses: docker/build-push-action@v6
         id: push
         with:
-          context: ./Woori-Doori-BE
-          file: ./Woori-Doori-BE/Dockerfile
+          context: ./dooribank-be
+          file: ./dooribank-be/Dockerfile
           push: true
           tags: |
             ${{ env.IMAGE }}:latest
@@ -229,7 +229,7 @@ jobs:
           image-ref: "${{ env.IMAGE }}@${{ steps.push.outputs.digest }}"
           scan-type: "image"
           format: "cyclonedx"
-          output: "${{ github.workspace }}/Woori-Doori-BE/sbom.json"
+          output: "${{ github.workspace }}/dooribank-be/sbom.json"
 
 
 
@@ -251,7 +251,7 @@ jobs:
           DIGEST: ${{ steps.push.outputs.digest }}
         run: |
           cosign attest --yes \
-            --predicate "${{ github.workspace }}/Woori-Doori-BE/sbom.json" \
+            --predicate "${{ github.workspace }}/dooribank-be/sbom.json" \
             --type cyclonedx \
             "${{ env.IMAGE }}@${DIGEST}"
             
@@ -304,7 +304,7 @@ jobs:
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ubuntu
-          port: 19201
+          port: 19177
           key: ${{ secrets.SSH_KEY }}
           command_timeout: 10m
           script: |
@@ -335,9 +335,9 @@ jobs:
 
             
             # 2) 컨테이너 재배포 (Dotenv가 /app/.env 를 찾으므로 바인드 마운트)
-            docker login ghcr.io -u '${{ github.actor }}' -p '${{ secrets.G_TOKEN }}'
-            docker pull "${IMAGE}@${{ needs.build-and-push.outputs.image_digest }}"
-            docker rm -f app || true
-            docker run -d --name app -p 8080:8080 \
+            sudo docker login ghcr.io -u '${{ github.actor }}' -p '${{ secrets.G_TOKEN }}'
+            sudo docker pull "${IMAGE}@${{ needs.build-and-push.outputs.image_digest }}"
+            sudo docker rm -f app || true
+            sudo docker run -d --name app -p 8080:8080 \
               -v "$ENV_PATH":/app/.env:ro \
               "${IMAGE}@${{ needs.build-and-push.outputs.image_digest }}"
