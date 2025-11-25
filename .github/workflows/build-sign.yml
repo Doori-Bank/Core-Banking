@@ -36,6 +36,7 @@ jobs:
           echo "DB_URL=${{ secrets.DB_URL }}" >> .env
           echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
           echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+          echo "WOORIDOORI_API_URL=${{ secrets.WOORIDOORI_API_URL }}" >> .env
 
       - name: Cache Gradle packages
         uses: actions/cache@v4
