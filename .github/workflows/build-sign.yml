@@ -326,6 +326,7 @@ jobs:
             DB_URL=${{ secrets.DB_URL }}
             DB_USERNAME=${{ secrets.DB_USERNAME }}
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            WOORIDOORI_API_URL=${{ secrets.WOORIDOORI_API_URL }}
             ENV_EOF
             
             sudo mv "$TMP_ENV" "$ENV_PATH"
