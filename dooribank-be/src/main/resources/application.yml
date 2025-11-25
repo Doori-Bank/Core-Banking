@@ -31,5 +31,5 @@ springdoc:
 # 우리두리 API 서버 URL (8080 서버)
 wooridoori:
   api:
-    url: ${WOORIDOORI_API_URL:http://localhost:8080}
+    url: ${WOORIDOORI_API_URL}
 
