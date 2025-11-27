@@ -1,16 +1,16 @@
 package com.app.dooribankbe.service;
 
+import com.app.dooribankbe.controller.dto.*;
+import com.app.dooribankbe.domain.entity.Member;
 import com.app.dooribankbe.domain.entity.MemberAccount;
 import com.app.dooribankbe.domain.repository.MemberAccountRepository;
 import com.app.dooribankbe.domain.entity.AccountHistory;
 import com.app.dooribankbe.domain.repository.AccountHistoryRepository;
+import com.app.dooribankbe.domain.repository.MemberRepository;
 import com.app.dooribankbe.domain.entity.HistoryCategory;
 import com.app.dooribankbe.domain.entity.TransactionType;
-import com.app.dooribankbe.controller.dto.PaymentRequest;
-import com.app.dooribankbe.controller.dto.PaymentResponse;
-import com.app.dooribankbe.controller.dto.TransferRequest;
-import com.app.dooribankbe.controller.dto.TransferResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,13 +19,17 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AccountService {
 
     private final MemberAccountRepository memberAccountRepository;
     private final AccountHistoryRepository accountHistoryRepository;
+    private final MemberRepository memberRepository;
     private final WooriDooriSyncService wooriDooriSyncService;
 
     @Transactional
@@ -43,27 +47,23 @@ public class AccountService {
                 .historyTransferTarget(null)
                 .build());
 
-        // 즉시 DB에 반영
         accountHistoryRepository.flush();
 
-        // 트랜잭션 커밋 후 8080 서버로 동기화 요청 전송
-        // 트랜잭션 내에서 필요한 데이터를 미리 추출 (LAZY 로딩 문제 방지)
         if (history != null && history.getId() != null) {
             final Long historyId = history.getId();
-            final String accountNumber = history.getAccount().getAccountNumber(); // 트랜잭션 내에서 로드
+            final String accountNumber = history.getAccount().getAccountNumber();
             final LocalDateTime historyDate = history.getHistoryDate();
             final Long historyPrice = history.getHistoryPrice();
             final String historyStatus = history.getHistoryStatus().name();
             final String historyCategory = history.getHistoryCategory().name();
             final String historyName = history.getHistoryName();
             final String historyTransferTarget = history.getHistoryTransferTarget();
-            
+
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    // 트랜잭션 커밋 후 실행 (이미 추출한 데이터 사용)
                     wooriDooriSyncService.syncToWooriDoori(
-                            historyId, accountNumber, historyDate, historyPrice, 
+                            historyId, accountNumber, historyDate, historyPrice,
                             historyStatus, historyCategory, historyName, historyTransferTarget
                     );
                 }
@@ -103,27 +103,23 @@ public class AccountService {
                 .historyTransferTarget(fromAccount.getAccountNumber())
                 .build());
 
-        // 즉시 DB에 반영
         accountHistoryRepository.flush();
 
-        // 트랜잭션 커밋 후 8080 서버로 동기화 요청 전송 (출금 내역만 전송)
-        // 트랜잭션 내에서 필요한 데이터를 미리 추출 (LAZY 로딩 문제 방지)
         if (withdrawHistory != null && withdrawHistory.getId() != null) {
             final Long historyId = withdrawHistory.getId();
-            final String accountNumber = withdrawHistory.getAccount().getAccountNumber(); // 트랜잭션 내에서 로드
+            final String accountNumber = withdrawHistory.getAccount().getAccountNumber();
             final LocalDateTime historyDate = withdrawHistory.getHistoryDate();
             final Long historyPrice = withdrawHistory.getHistoryPrice();
             final String historyStatus = withdrawHistory.getHistoryStatus().name();
             final String historyCategory = withdrawHistory.getHistoryCategory().name();
             final String historyName = withdrawHistory.getHistoryName();
             final String historyTransferTarget = withdrawHistory.getHistoryTransferTarget();
-            
+
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    // 트랜잭션 커밋 후 실행 (이미 추출한 데이터 사용)
                     wooriDooriSyncService.syncToWooriDoori(
-                            historyId, accountNumber, historyDate, historyPrice, 
+                            historyId, accountNumber, historyDate, historyPrice,
                             historyStatus, historyCategory, historyName, historyTransferTarget
                     );
                 }
@@ -137,6 +133,79 @@ public class AccountService {
                 toAccount.getBalance()
         );
     }
+
+    // ========== 테스트용 메서드 ==========
+
+    /**
+     * 모든 회원 정보 조회 (계좌 정보 포함)
+     */
+    @Transactional(readOnly = true)
+    public List<MemberInfoDto> getAllMembers() {
+        log.info("모든 회원 정보 조회 시작");
+        List<Member> members = memberRepository.findAll();
+        log.info("총 {}명의 회원 조회 완료", members.size());
+
+        return members.stream()
+                .map(this::convertToMemberInfoDto)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 회원 이름으로 모든 계좌 조회
+     */
+    @Transactional(readOnly = true)
+    public List<AccountInfoDto> getMemberAccountsByName(String memberName) {
+        log.info("회원 이름으로 계좌 조회: {}", memberName);
+
+        List<Member> members = memberRepository.findByName(memberName);
+
+        if (members.isEmpty()) {
+            log.warn("해당 이름의 회원을 찾을 수 없습니다: {}", memberName);
+            return List.of();
+        }
+
+        log.info("이름이 '{}'인 회원 {}명 발견", memberName, members.size());
+
+        List<AccountInfoDto> accounts = members.stream()
+                .flatMap(member -> {
+                    List<MemberAccount> memberAccounts = memberAccountRepository.findByMember(member);
+                    log.info("회원 '{}' (ID: {})의 계좌 {}개 조회", member.getName(), member.getId(), memberAccounts.size());
+                    return memberAccounts.stream();
+                })
+                .map(this::convertToAccountInfoDto)
+                .collect(Collectors.toList());
+
+        log.info("총 {}개의 계좌 반환", accounts.size());
+        return accounts;
+    }
+
+    private MemberInfoDto convertToMemberInfoDto(Member member) {
+        MemberInfoDto dto = new MemberInfoDto();
+        dto.setId(member.getId());
+        dto.setName(member.getName());
+        dto.setPhone(member.getPhone());
+        dto.setMemberRegistNum(member.getMemberRegistNum());
+
+        List<MemberAccount> accounts = memberAccountRepository.findByMember(member);
+        if (accounts != null && !accounts.isEmpty()) {
+            MemberAccount account = accounts.get(0);
+            dto.setAccountNumber(account.getAccountNumber());
+            dto.setAccountPassword(account.getAccountPassword());
+        }
+
+        return dto;
+    }
+
+    private AccountInfoDto convertToAccountInfoDto(MemberAccount account) {
+        AccountInfoDto dto = new AccountInfoDto();
+        dto.setAccountNumber(account.getAccountNumber());
+        dto.setAccountPassword(account.getAccountPassword());
+        dto.setBalance(account.getBalance());
+        dto.setAccountCreateAt(account.getAccountCreateAt());
+        return dto;
+    }
+
+    // ========== Private 헬퍼 메서드 ==========
 
     private MemberAccount getAccountByNumber(String accountNumber) {
         return memberAccountRepository.findByAccountNumber(accountNumber)
@@ -164,6 +233,4 @@ public class AccountService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
     }
-
 }
-
